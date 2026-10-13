@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Peminjaman Mobil Kantor</title>
+<style>
+:root{--bg:#f6f7f4;--card:#fff;--tx:#1d2a24;--mut:#66736b;--bd:#dfe4de;--pri:#0f7a4d;--prit:#fff;--warn:#b45309;--bad:#b91c1c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root{color-scheme:light}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.calg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:12px 0}
+.ch{text-align:center;font-size:12px;color:var(--mut)}
+.cd{padding:6px 2px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:52px}
+.cd span{font-size:13px}.cd i{display:block;width:80%;height:6px;border-radius:3px;border:1px solid var(--bd)}
+.cd.td{border-color:var(--pri);font-weight:700}.cd.sel{background:#e7f3ec}.cd.full{background:#fdeceb}
+.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px}.drow{margin-top:6px}
+
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:860px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin:0}h2{font-size:15px;margin:22px 0 10px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+.sub{color:var(--mut);font-size:13px;margin:2px 0 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;overflow:hidden}
+.pad{padding:14px}
+.ph{aspect-ratio:16/9;background:var(--bd);display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:13px;width:100%;object-fit:cover}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.badge{font-size:12px;padding:2px 9px;border-radius:99px;border:1px solid var(--bd);font-weight:600}
+.free{color:var(--pri);border-color:var(--pri)}.busy{color:var(--warn);border-color:var(--warn)}
+button,.btn{font:inherit;border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:9px 14px;border-radius:10px;cursor:pointer;text-decoration:none;display:inline-block}
+button.p{background:var(--pri);color:var(--prit);border-color:var(--pri);font-weight:600}
+button:disabled{opacity:.5}button.sm{padding:5px 10px;font-size:13px}
+input,textarea{font:inherit;width:100%;padding:9px 11px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);margin:4px 0 10px}
+label{font-size:13px;color:var(--mut)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;z-index:9;padding-top:env(safe-area-inset-top,0px)}
+.modal.on{display:flex}.sheet{background:var(--card);width:100%;max-width:520px;max-height:92%;overflow:auto;border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px))}
+@media(min-width:600px){.modal{align-items:center}.sheet{border-radius:18px}}
+.pics{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pics div{font-size:12px;color:var(--mut)}
+.pics img,.pics .ph{border-radius:10px}
+svg.map{width:100%;height:180px;background:var(--bg);border:1px solid var(--bd);border-radius:10px}
+.mut{color:var(--mut);font-size:13px}.err{color:var(--bad);font-size:13px}
+.hist{display:flex;flex-direction:column;gap:10px}
+.pulse{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--bad);margin-right:6px;animation:p 1.2s infinite}@keyframes p{50%{opacity:.25}}
+.wrap{overflow-x:auto}
+</style></head><body><main>
+<div class="row"><div><h1>🚗 Peminjaman Mobil Kantor</h1><p class="sub">Dompet Dhuafa · 2 mobil · foto sebelum &amp; sesudah · kalender peminjaman</p></div><div id="who" class="mut" style="text-align:right"></div></div>
+<div id="warn" class="err"></div>
+<h2>Mobil</h2><div id="cars" class="grid"></div>
+<h2>Sedang dipakai</h2><div id="live" class="grid"></div>
+<h2>Pengajuan peminjaman</h2><div id="upc" class="grid"></div>
+<h2 id="hHist">Riwayat peminjaman</h2><div id="hist" class="hist"></div>
+<h2>Kalender peminjaman</h2><div class="card pad"><div class="row"><button class="sm" id="calPrev">‹ Sebelumnya</button><b id="calTitle"></b><button class="sm" id="calNext">Berikutnya ›</button></div><div id="cal"></div><div class="row mut" id="calLegend"></div><div id="calDay" style="margin-top:12px;border-top:1px solid var(--bd);padding-top:10px"></div></div>
+<div id="memSec" style="display:none"><h2 id="memTitle">Anggota</h2><div id="members" class="grid"></div></div></main>
+
+<div class="modal" id="mBorrow"><div class="sheet">
+<h1 id="bTitle">Ajukan peminjaman</h1><p class="sub" id="bNote">Foto &amp; video kondisi mobil tidak diminta sekarang. Upload nanti, sekitar 5 menit sebelum berangkat.</p><br>
+<label>Nama peminjam</label><input id="fName" placeholder="Nama lengkap">
+<label>Keperluan</label><input id="fPurpose" placeholder="Mis. survei penerima manfaat">
+<label>Tujuan</label><input id="fDest" placeholder="Mis. Demak">
+<div class="row2"><div><label>Tanggal pinjam</label><input id="fSd" type="date"></div><div><label>Tanggal kembali</label><input id="fEd" type="date"></div></div>
+<label>Jam berangkat (opsional)</label><input id="fTm" type="time">
+<div id="bErr" class="err"></div>
+<div class="row"><button id="bCancel">Batal</button><button class="p" id="bGo">Ajukan peminjaman</button></div>
+</div></div>
+<div class="modal" id="mStart"><div class="sheet">
+<h1 id="sTitle">Berangkat</h1><p class="sub" id="sInfo"></p><p class="sub">Upload kondisi mobil sebelum berangkat (sekitar 5 menit sebelum jalan).</p><br>
+<label>Foto mobil SEBELUM dipinjam (wajib)</label>
+<input id="fBefore" type="file" accept="image/*" capture="environment">
+<img id="pvBefore" class="ph" style="display:none;border-radius:10px;margin-bottom:10px" alt="">
+<label>Video kondisi mobil sebelum berangkat (opsional, maks. 15 MB, sekitar 10-20 detik)</label>
+<input id="fVideo" type="file" accept="video/*" capture="environment">
+<video id="pvVideo" controls playsinline style="display:none;width:100%;border-radius:10px;margin-bottom:10px"></video>
+<div id="sErr" class="err"></div>
+<div class="row"><button id="sCancel">Batal</button><button class="p" id="sGo">Berangkat</button></div>
+</div></div>
+<div class="modal" id="mFinish"><div class="sheet">
+<h1>Selesai &amp; kembalikan mobil</h1><p class="sub">Ambil foto kondisi mobil setelah dipakai.</p><br>
+<label>Foto mobil SESUDAH dipinjam (wajib)</label>
+<input id="fAfter" type="file" accept="image/*" capture="environment">
+<img id="pvAfter" class="ph" style="display:none;border-radius:10px;margin-bottom:10px" alt="">
+<label>Catatan (opsional)</label><input id="fNote" placeholder="Kerusakan, BBM, dll.">
+<div id="fErr" class="err"></div>
+<div class="row"><button id="fCancel">Batal</button><button class="p" id="fGo">Selesai</button></div>
+</div></div>
+
+<div class="modal on" id="mLogin"><div class="sheet" style="max-width:420px">
+<h1>Peminjaman Mobil Kantor</h1><p class="sub">Masuk untuk memakai aplikasi. Belum punya akun? Daftar dulu.</p><br>
+<div class="row2"><button id="tIn" class="p">Masuk</button><button id="tReg">Daftar</button></div>
+<div id="boxIn" style="margin-top:12px">
+<label>Nomor HP</label><input id="lPhone" inputmode="tel" placeholder="08xxxxxxxxxx">
+<label>PIN</label><input id="lPin" type="password" inputmode="numeric" placeholder="PIN Anda">
+<button class="p" id="lGo" style="width:100%">Masuk sebagai Member</button>
+<p style="margin:12px 0 0"><button class="sm" id="tAdm">Masuk sebagai Admin (General Affair)</button></p></div>
+<div id="boxReg" style="display:none;margin-top:12px">
+<label>Nama lengkap</label><input id="rName" placeholder="Nama lengkap">
+<label>Nomor HP</label><input id="rPhone" inputmode="tel" placeholder="08xxxxxxxxxx">
+<label>Bagian / divisi</label><input id="rDept" placeholder="Mis. Program">
+<label>Buat PIN (4-6 angka)</label><input id="rPin" type="password" inputmode="numeric" maxlength="6">
+<button class="p" id="rGo" style="width:100%">Daftar</button>
+<p class="mut" style="margin:8px 0 0">Setelah mendaftar, akun perlu disetujui admin (General Affair) sebelum bisa dipakai.</p></div>
+<div id="boxAdm" style="display:none;margin-top:12px">
+<label>Nama admin</label><input id="aName" placeholder="Admin GA">
+<label>PIN admin</label><input id="aPin" type="password" inputmode="numeric" placeholder="PIN dari sheet pengaturan">
+<button class="p" id="aGo" style="width:100%">Masuk sebagai Admin</button>
+<p style="margin:12px 0 0"><button class="sm" id="tBack">Kembali</button></p></div>
+<div id="lErr" class="err" style="margin-top:8px"></div><div id="lOk" style="color:var(--pri);margin-top:8px"></div>
+</div></div>
+<div class="modal" id="mEdit"><div class="sheet"><h1>Ubah data mobil</h1><br>
+<label>Nama mobil</label><input id="eName">
+<label>Plat nomor</label><input id="ePlate" placeholder="Mis. H 1234 AB">
+<label>Foto mobil</label><input id="eFile" type="file" accept="image/*">
+<img id="ePv" class="ph" style="display:none;border-radius:10px;margin-bottom:10px" alt="">
+<div id="eErr" class="err"></div>
+<div class="row"><button id="eCancel">Batal</button><button class="p" id="eGo">Simpan</button></div></div></div>
+<script>
+const CARS=[{id:"c1",name:"Mobil 1"},{id:"c2",name:"Mobil 2"}];
+let db=null,cars={},bks=[],selCar=null,finishId=null;
+const $=id=>document.getElementById(id);
+const esc=s=>{const d=document.createElement("div");d.textContent=s==null?"":String(s);return d.innerHTML};
+const fmt=t=>t?new Date(t).toLocaleString("id-ID",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"-";
+const dur=(a,b)=>{const m=Math.round(((b||Date.now())-a)/60000);return m>=60?Math.floor(m/60)+" j "+m%60+" m":m+" m"};
+
+function compress(file,max=720,q=.6){return new Promise((ok,no)=>{const r=new FileReader();r.onerror=no;r.onload=()=>{const i=new Image();i.onerror=no;i.onload=()=>{const s=Math.min(1,max/Math.max(i.width,i.height));const c=document.createElement("canvas");c.width=i.width*s;c.height=i.height*s;c.getContext("2d").drawImage(i,0,0,c.width,c.height);ok(c.toDataURL("image/jpeg",q))};i.src=r.result};r.readAsDataURL(file)})}
+
+
+
+
+function mapSvg(tr){
+  if(!tr||!tr.length)return '<div class="ph" style="height:180px;aspect-ratio:auto;border-radius:10px">Menunggu sinyal GPS…</div>';
+  const la=tr.map(p=>p[0]),lo=tr.map(p=>p[1]);
+  const a=Math.min(...la),b=Math.max(...la),c=Math.min(...lo),d=Math.max(...lo);
+  const W=400,H=180,P=18,sx=Math.max(d-c,1e-5),sy=Math.max(b-a,1e-5),k=Math.min((W-2*P)/sx,(H-2*P)/sy);
+  const X=p=>P+(p[1]-c)*k+((W-2*P)-sx*k)/2,Y=p=>H-P-(p[0]-a)*k-((H-2*P)-sy*k)/2;
+  const pts=tr.map(p=>X(p).toFixed(1)+","+Y(p).toFixed(1)).join(" "),f=tr[0],l=tr[tr.length-1];
+  return `<svg class="map" viewBox="0 0 ${W} ${H}"><polyline points="${pts}" fill="none" stroke="var(--pri)" stroke-width="3" stroke-linejoin="round"/><circle cx="${X(f)}" cy="${Y(f)}" r="5" fill="var(--mut)"/><circle cx="${X(l)}" cy="${Y(l)}" r="7" fill="var(--bad)"/></svg>`;
+}
+
+
+function render(){renderUpc();renderCal();
+  const act=bks.filter(b=>b.status==="active");
+  $("cars").innerHTML=CARS.map(c=>{
+    const info=cars[c.id]||{},use=act.find(b=>b.carId===c.id),nm=info.name||c.name;
+    return `<div class="card">${info.photo?`<img class="ph" src="${info.photo}" alt="${esc(nm)}">`:`<div class="ph">Belum ada foto mobil</div>`}
+    <div class="pad"><div class="row"><b>${esc(nm)}</b><span class="badge ${use?"busy":"free"}">${use?"Sedang dipakai":"Tersedia"}</span></div>
+    <div class="mut">${esc(info.plate||"Plat belum diisi")}${use?` · ${esc(use.name)}${use.dest?" → "+esc(use.dest):""}`:""}</div><br>
+    <div class="row"><button class="p" data-borrow="${c.id}">Pinjam</button>${isAdmin()?`<button class="sm" data-edit="${c.id}">Ubah foto/plat</button>`:""}</div></div></div>`}).join("");
+  $("live").innerHTML=act.length?act.map(b=>{
+    return `<div class="card pad"><div class="row"><b><span class="pulse"></span>${esc(carName(b.carId))}</b><span class="mut">${esc(b.name)}</span></div>
+    <div class="mut">${b.purpose?esc(b.purpose)+" → "+esc(b.dest)+" · ":""}berangkat ${fmt(b.start)} (${dur(b.start)})${b.ed?` · kembali ${fd(b.ed)}`:""}</div>${b.video?`<div style="margin-top:6px"><a class="btn sm" href="${b.video}" target="_blank" rel="noopener">▶ Video kondisi sebelum berangkat</a></div>`:""}
+    
+    ${mine(b)?`<br><button class="p" data-fin="${b.id}">Selesai &amp; kembalikan</button>`:""}</div>`}).join(""):`<p class="mut">Tidak ada mobil yang sedang dipakai.</p>`;
+  const done=bks.filter(b=>b.status==="done"&&mine(b));
+  $("hist").innerHTML=done.length?done.map(b=>`<div class="card pad"><div class="row"><b>${esc(carName(b.carId))} · ${esc(b.name)}</b><span class="mut">${fmt(b.start)} → ${fmt(b.end)} (${dur(b.start,b.end)})</span></div>
+    <div class="mut">${esc(b.purpose)} → ${esc(b.dest)}${b.note?" · "+esc(b.note):""}</div>${isAdmin()?`<div style="margin:6px 0"><button class="sm" data-del="${b.id}">Hapus riwayat</button></div>`:""}<br>
+    <div class="pics"><div>Sebelum${b.before?`<img class="ph" src="${b.before}" alt="Sebelum">`:""}</div><div>Sesudah${b.after?`<img class="ph" src="${b.after}" alt="Sesudah">`:""}</div></div>${b.video?`<div style="margin-top:8px"><a class="btn sm" href="${b.video}" target="_blank" rel="noopener">▶ Video kondisi sebelum berangkat</a></div>`:""}
+    </div>`).join(""):`<p class="mut">Belum ada riwayat.</p>`;
+}
+const carName=id=>(cars[id]&&cars[id].name)||(CARS.find(c=>c.id===id)||{}).name||id;
+
+/* Tanggal & kalender */
+let startId=null,selDay=null,cm=new Date();const CC={c1:"#0f7a4d",c2:"#2563eb"};cm.setDate(1);
+const dstr=t=>{const d=new Date(t);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const today=()=>dstr(Date.now());
+const sdOf=b=>b.sd||dstr(b.start||Date.now());
+const edOf=b=>{const s=sdOf(b);let e=b.ed||s;if(b.status==="done"&&b.end)e=dstr(b.end);if(b.status==="active"&&e<today())e=today();return e<s?s:e};
+const fd=s=>{const p=s.split("-");return new Date(p[0],p[1]-1,p[2]).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"})};
+const overlap=(c,s,e,skip)=>bks.find(b=>b.id!==skip&&b.carId===c&&b.status!=="done"&&sdOf(b)<=e&&edOf(b)>=s);
+const onDay=(c,ds)=>bks.filter(b=>b.carId===c&&sdOf(b)<=ds&&edOf(b)>=ds);
+function openB(car){
+  startId=null;selCar=car;
+  $("bTitle").textContent="Ajukan peminjaman \u00b7 "+carName(car);
+  $("fName").value=me.name;$("fName").disabled=!isAdmin();
+  $("fPurpose").value="";$("fDest").value="";$("fTm").value="";
+  $("fSd").min=today();$("fSd").value=today();$("fEd").value=today();
+  $("bErr").textContent="";$("mBorrow").classList.add("on");
+}
+function updBtn(){}
+function openStart(b){
+  if(!b)return;startId=b.id;selCar=b.carId;
+  $("sTitle").textContent="Berangkat \u00b7 "+carName(b.carId);$("sInfo").textContent=b.name+" \u2192 "+(b.dest||"");
+  beforeImg=null;beforeVid=null;$("pvBefore").style.display="none";$("fBefore").value="";$("fVideo").value="";$("pvVideo").style.display="none";$("pvVideo").removeAttribute("src");
+  $("sErr").textContent="";$("mStart").classList.add("on");
+}
+$("fSd").onchange=()=>{if($("fEd").value<$("fSd").value)$("fEd").value=$("fSd").value;updBtn()};
+$("calPrev").onclick=()=>{cm.setMonth(cm.getMonth()-1);renderCal()};
+$("calNext").onclick=()=>{cm.setMonth(cm.getMonth()+1);renderCal()};
+function renderUpc(){
+  const u=bks.filter(b=>b.status==="booked"&&mine(b)).sort((a,b)=>sdOf(a)<sdOf(b)?-1:1);
+  $("upc").innerHTML=u.length?u.map(b=>`<div class="card pad"><div class="row"><b>${esc(carName(b.carId))}</b><span class="badge busy">Diajukan</span></div><div class="mut">${esc(b.name)} · ${esc(b.purpose)} → ${esc(b.dest)}<br>${fd(sdOf(b))} – ${fd(edOf(b))}${b.tm?" · berangkat "+esc(b.tm):""}</div><br>${mine(b)?`<div class="row"><button class="p sm" data-start="${b.id}">Upload kondisi &amp; berangkat</button><button class="sm" data-cancelbk="${b.id}">Batalkan</button></div>`:""}</div>`).join(""):`<p class="mut">Belum ada pengajuan.</p>`;
+}
+function renderCal(){
+  const y=cm.getFullYear(),m=cm.getMonth(),first=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate();
+  $("calTitle").textContent=cm.toLocaleDateString("id-ID",{month:"long",year:"numeric"});
+  let h=["Min","Sen","Sel","Rab","Kam","Jum","Sab"].map(d=>`<div class="ch">${d}</div>`).join("");
+  for(let i=0;i<first;i++)h+="<div></div>";
+  for(let d=1;d<=n;d++){
+    const ds=y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");let k=0;
+    const bars=CARS.map(c=>{const u=onDay(c.id,ds).length>0;if(u)k++;return `<i style="${u?"background:"+CC[c.id]+";border-color:"+CC[c.id]:""}"></i>`}).join("");
+    h+=`<button class="cd${ds===today()?" td":""}${ds===(selDay||today())?" sel":""}${k===CARS.length?" full":""}" data-day="${ds}"><span>${d}</span>${bars}</button>`;
+  }
+  $("cal").innerHTML=`<div class="calg">${h}</div>`;
+  $("calLegend").innerHTML=CARS.map(c=>`<span><span class="dot" style="background:${CC[c.id]}"></span>${esc(carName(c.id))}</span>`).join("")+`<span>Kotak kosong = tersedia · latar merah muda = kedua mobil terpakai</span>`;
+  const sel=selDay||today();
+  $("calDay").innerHTML=`<b>${fd(sel)}</b>`+CARS.map(c=>{const u=onDay(c.id,sel);return `<div class="drow"><span class="dot" style="background:${CC[c.id]}"></span><b>${esc(carName(c.id))}</b>: `+(u.length?u.map(b=>`${esc(b.name)}${b.purpose?" · "+esc(b.purpose)+" → "+esc(b.dest):""} <span class="mut">(${fd(sdOf(b))} – ${fd(edOf(b))}${b.status==="booked"?", diajukan":b.status==="active"?", sedang jalan":""})</span>`).join("; "):`<span style="color:var(--pri)">Tersedia</span>`)+`</div>`}).join("");
+}
+
+
+
+/* Pinjam */
+let beforeImg=null,afterImg=null,beforeVid=null;
+const readData=f=>new Promise((ok,no)=>{const r=new FileReader();r.onerror=no;r.onload=()=>ok(r.result);r.readAsDataURL(f)});
+document.addEventListener("click",e=>{
+  const t=e.target.closest("button");if(!t)return;
+  if(t.dataset.borrow)openB(t.dataset.borrow,null);else if(t.dataset.start)openStart(bks.find(x=>x.id===t.dataset.start));else if(t.dataset.cancelbk){if(t.dataset.sure)db.collection("bookings").doc(t.dataset.cancelbk).delete();else{t.dataset.sure="1";t.textContent="Yakin batalkan?"}}else if(t.dataset.ms){const q=t.dataset.ms.split("|");api("setMemberStatus",q[0],q[1],auth()).then(load).catch(e=>$("warn").textContent=e.message)}else if(t.dataset.mp){const v=t.parentElement.querySelector("input").value.trim();if(!/^\d{4,6}$/.test(v))return $("warn").textContent="PIN baru harus 4-6 angka.";api("setMemberPin",t.dataset.mp,v,auth()).then(()=>{t.textContent="PIN diubah";t.parentElement.querySelector("input").value=""}).catch(e=>$("warn").textContent=e.message)}else if(t.dataset.del){if(t.dataset.sure)db.collection("bookings").doc(t.dataset.del).delete();else{t.dataset.sure="1";t.textContent="Yakin hapus?"}}else if(t.dataset.day){selDay=t.dataset.day;renderCal()}
+  else if(t.dataset.fin){finishId=t.dataset.fin;afterImg=null;$("pvAfter").style.display="none";$("fAfter").value="";$("fErr").textContent="";$("mFinish").classList.add("on")}
+  
+  else if(t.dataset.edit)editCar(t.dataset.edit);
+});
+$("bCancel").onclick=()=>$("mBorrow").classList.remove("on");
+$("fCancel").onclick=()=>$("mFinish").classList.remove("on");
+$("fBefore").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{beforeImg=await compress(f);$("pvBefore").src=beforeImg;$("pvBefore").style.display="block"}catch(x){$("sErr").textContent="Foto gagal dibaca."}};
+$("fAfter").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{afterImg=await compress(f);$("pvAfter").src=afterImg;$("pvAfter").style.display="block"}catch(x){$("fErr").textContent="Foto gagal dibaca."}};
+$("bGo").onclick=async()=>{
+  const n=$("fName").value.trim(),pu=$("fPurpose").value.trim(),de=$("fDest").value.trim(),sd=$("fSd").value,ed=$("fEd").value,tm=$("fTm").value;
+  if(!n||!pu||!de)return $("bErr").textContent="Nama, keperluan, dan tujuan wajib diisi.";
+  if(!sd||!ed||ed<sd)return $("bErr").textContent="Tanggal kembali tidak boleh sebelum tanggal pinjam.";
+  if(sd<today())return $("bErr").textContent="Tanggal pinjam tidak boleh sebelum hari ini.";
+  const cf=overlap(selCar,sd,ed,null);if(cf)return $("bErr").textContent=`Bentrok: ${carName(selCar)} sudah dipinjam ${cf.name} pada ${fd(sdOf(cf))} \u2013 ${fd(edOf(cf))}.`;
+  $("bGo").disabled=true;
+  try{await db.collection("bookings").doc("b"+Date.now()).set({carId:selCar,name:n,purpose:pu,dest:de,sd,ed,tm,status:"booked",start:new Date(sd+"T"+(tm||"08:00")).getTime()});$("mBorrow").classList.remove("on")}
+  catch(e){$("bErr").textContent="Gagal menyimpan: "+e.message}
+  $("bGo").disabled=false;
+};
+$("sCancel").onclick=()=>$("mStart").classList.remove("on");
+$("sGo").onclick=async()=>{
+  const b=bks.find(x=>x.id===startId);if(!b)return;
+  if(!beforeImg)return $("sErr").textContent="Foto kondisi mobil sebelum berangkat wajib diambil.";
+  if(bks.some(x=>x.carId===b.carId&&x.status==="active"&&x.id!==b.id))return $("sErr").textContent="Mobil ini masih dipakai peminjam lain.";
+  $("sGo").disabled=true;$("sGo").textContent="Mengunggah...";
+  const d={status:"active",start:Date.now(),before:beforeImg};if(beforeVid)d.video=beforeVid;if(sdOf(b)>today())d.sd=today();
+  try{await db.collection("bookings").doc(startId).update(d);$("mStart").classList.remove("on")}
+  catch(e){$("sErr").textContent="Gagal menyimpan: "+e.message}
+  $("sGo").disabled=false;$("sGo").textContent="Berangkat";
+};
+$("fGo").onclick=async()=>{
+  if(!afterImg)return $("fErr").textContent="Foto sesudah dipinjam wajib diambil.";
+  $("fGo").disabled=true;
+  try{await db.collection("bookings").doc(finishId).update({status:"done",end:Date.now(),after:afterImg,note:$("fNote").value.trim()});
+    $("fNote").value="";$("mFinish").classList.remove("on")}
+  catch(e){$("fErr").textContent="Gagal menyimpan: "+e.message}
+  $("fGo").disabled=false;
+};
+function editCar(id){
+  openEdit(id);
+}
+
+let editId=null,editImg=null;
+function openEdit(id){editId=id;const c=cars[id]||{};$("eName").value=c.name||(CARS.find(x=>x.id===id)||{}).name||"";$("ePlate").value=c.plate||"";editImg=null;$("eFile").value="";$("ePv").src=c.photo||"";$("ePv").style.display=c.photo?"block":"none";$("eErr").textContent="";$("mEdit").classList.add("on")}
+$("eCancel").onclick=()=>$("mEdit").classList.remove("on");
+$("eFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{editImg=await compress(f,900,.65);$("ePv").src=editImg;$("ePv").style.display="block"}catch(x){$("eErr").textContent="Foto gagal dibaca."}};
+$("eGo").onclick=async()=>{if(!db)return $("eErr").textContent="Database belum tersedia.";$("eGo").disabled=true;const cur=cars[editId]||{},d=Object.assign({},cur,{name:$("eName").value.trim()||cur.name||"",plate:$("ePlate").value.trim()});if(editImg)d.photo=editImg;try{await db.collection("cars").doc(editId).set(d);$("mEdit").classList.remove("on")}catch(e){$("eErr").textContent="Gagal menyimpan: "+e.message}$("eGo").disabled=false};
+
+$("fVideo").onchange=async e=>{
+  const f=e.target.files[0];beforeVid=null;$("pvVideo").style.display="none";if(!f)return;
+  if(f.size>15*1048576){e.target.value="";return $("sErr").textContent="Video terlalu besar ("+(f.size/1048576).toFixed(1)+" MB). Maksimal 15 MB, rekam sekitar 10-20 detik."}
+  try{beforeVid=await readData(f);$("pvVideo").src=URL.createObjectURL(f);$("pvVideo").style.display="block";$("sErr").textContent=""}catch(x){$("sErr").textContent="Video gagal dibaca."}
+};
+/* Start (Google Apps Script) */
+const api=(fn,...a)=>new Promise((ok,no)=>{google.script.run.withSuccessHandler(ok).withFailureHandler(e=>no(new Error(String((e&&e.message)||e).replace(/^(Error|Exception):\s*/,""))))[fn](...a)});
+let me={role:null,id:"",name:"",pin:""},memSig="";
+const isAdmin=()=>me.role==="admin";
+const mine=b=>isAdmin()||(!!me.id&&b.mid===me.id);
+const auth=()=>me.role==="admin"?{apin:me.pin,name:me.name}:me.role==="member"?{mid:me.id,pin:me.pin}:{};
+async function load(){
+  try{
+    const r=await api("loadAll",auth());cars=r.cars;bks=r.bookings.sort((a,b)=>b.start-a.start);render();$("warn").textContent="";
+    if(isAdmin()){const l=await api("listMembers",auth()),sg=JSON.stringify(l);if(sg!==memSig){memSig=sg;renderMem(l)}}
+  }catch(e){$("warn").textContent="Gagal memuat data: "+e.message}
+}
+function renderMem(l){
+  const st={menunggu:["Menunggu","busy"],aktif:["Aktif","free"],nonaktif:["Nonaktif",""]},pend=l.filter(m=>m.status==="menunggu").length;
+  $("memTitle").textContent="Anggota"+(pend?" · "+pend+" menunggu persetujuan":"");
+  $("members").innerHTML=l.length?l.map(m=>{const s=st[m.status]||[m.status,""];
+    const btns=m.status==="menunggu"?`<button class="p sm" data-ms="${m.id}|aktif">Setujui</button><button class="sm" data-ms="${m.id}|nonaktif">Tolak</button>`:m.status==="aktif"?`<button class="sm" data-ms="${m.id}|nonaktif">Nonaktifkan</button>`:`<button class="sm" data-ms="${m.id}|aktif">Aktifkan</button>`;
+    return `<div class="card pad"><div class="row"><b>${esc(m.name)}</b><span class="badge ${s[1]}">${s[0]}</span></div><div class="mut">${esc(m.phone)}${m.dept?" · "+esc(m.dept):""}</div><br><div class="row">${btns}</div><div class="row" style="margin-top:8px;justify-content:flex-start"><input placeholder="PIN baru" inputmode="numeric" maxlength="6" style="width:120px;margin:0"><button class="sm" data-mp="${m.id}">Atur PIN</button></div></div>`}).join(""):`<p class="mut">Belum ada yang mendaftar.</p>`;
+}
+db={collection:n=>({doc:id=>({
+  set:d=>api("save",n,id,d,auth()).then(load),
+  update:d=>api("save",n,id,d,auth()).then(load),
+  delete:()=>api("remove",n,id,auth()).then(load)})})};
+function enter(role,id,name,pin){
+  me={role,id,name,pin};
+  try{sessionStorage.setItem("ses",JSON.stringify(me))}catch(e){}
+  $("mLogin").classList.remove("on");
+  $("who").innerHTML=esc(name)+" · <b>"+(role==="admin"?"Admin":"Member")+"</b> <button class=\"sm\" id=\"logout\">Keluar</button>";
+  $("logout").onclick=()=>{me={role:null,id:"",name:"",pin:""};try{sessionStorage.removeItem("ses")}catch(e){}
+    $("who").textContent="";$("lPin").value="";$("aPin").value="";$("memSec").style.display="none";bks=[];memSig="";show("In");$("mLogin").classList.add("on");render()};
+  $("memSec").style.display=isAdmin()?"block":"none";
+  $("hHist").textContent=isAdmin()?"Riwayat peminjaman":"Riwayat peminjaman saya";
+  bks=[];memSig="";render();load();
+}
+const show=k=>{["In","Reg","Adm"].forEach(x=>$("box"+x).style.display=x===k?"block":"none");$("lErr").textContent="";$("lOk").textContent=""};
+$("tIn").onclick=()=>show("In");$("tReg").onclick=()=>show("Reg");$("tAdm").onclick=()=>show("Adm");$("tBack").onclick=()=>show("In");
+$("lGo").onclick=async()=>{
+  const ph=$("lPhone").value.trim(),pn=$("lPin").value.trim();
+  if(!ph||!pn)return $("lErr").textContent="Isi nomor HP dan PIN.";
+  $("lGo").disabled=true;$("lErr").textContent="";
+  try{const m=await api("login",ph,pn);try{localStorage.setItem("ph",ph)}catch(e){}enter("member",m.id,m.name,pn)}
+  catch(e){$("lErr").textContent=e.message}
+  $("lGo").disabled=false;
+};
+$("rGo").onclick=async()=>{
+  const d={name:$("rName").value.trim(),phone:$("rPhone").value.trim(),dept:$("rDept").value.trim(),pin:$("rPin").value.trim()};
+  if(!d.name||!d.phone||!/^\d{4,6}$/.test(d.pin))return $("lErr").textContent="Lengkapi nama, nomor HP, dan PIN 4-6 angka.";
+  $("rGo").disabled=true;$("lErr").textContent="";
+  try{await api("register",d);show("In");$("lPhone").value=d.phone;$("lPin").value="";$("lOk").textContent="Pendaftaran terkirim. Tunggu persetujuan admin (General Affair), lalu masuk dengan nomor HP dan PIN Anda."}
+  catch(e){$("lErr").textContent=e.message}
+  $("rGo").disabled=false;
+};
+$("aGo").onclick=async()=>{
+  const n=$("aName").value.trim()||"Admin GA",p=$("aPin").value.trim();
+  if(!p)return $("lErr").textContent="Isi PIN admin.";
+  $("aGo").disabled=true;$("lErr").textContent="";
+  try{if(await api("checkAdmin",p))enter("admin","admin",n,p);else $("lErr").textContent="PIN salah."}
+  catch(e){$("lErr").textContent="Gagal: "+e.message}
+  $("aGo").disabled=false;
+};
+try{const p=localStorage.getItem("ph");if(p)$("lPhone").value=p}catch(e){}
+try{const s=JSON.parse(sessionStorage.getItem("ses")||"null");if(s&&s.role)enter(s.role,s.id,s.name,s.pin)}catch(e){}
+render();load();setInterval(load,20000);
+</script></body></html>
